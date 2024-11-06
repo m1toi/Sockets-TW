@@ -71,6 +71,27 @@ public class ClientThread extends Thread {
             }
             case MESSAGE_INDIVIDUAL -> {
                 // Handle individual messaging (not implemented)
+                String recipient = receivedPacket.getRecipient();
+                Optional<User> optionalRecipient = UserManagement.INSTANCE.findUserByUsername(recipient);
+
+                if (optionalRecipient.isPresent()) {
+                    User recipientUser = optionalRecipient.get();
+                    User sender = receivedPacket.getUser();
+
+                    // Send the individual message
+                    UserManagement.INSTANCE.sendMessageToUser(sender, recipientUser, receivedPacket.getMessage());
+
+                    responsePacket = Packet.builder()
+                            .message("Message sent to " + recipient)
+                            .command(Command.MESSAGE_INDIVIDUAL)
+                            .build();
+                } else {
+                    responsePacket = Packet.builder()
+                            .message("User " + recipient + " not found")
+                            .command(Command.MESSAGE_INDIVIDUAL)
+                            .build();
+                }
+
             }
             default -> {
                 responsePacket = Packet.builder().message("Invalid command").build();

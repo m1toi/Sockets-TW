@@ -27,6 +27,12 @@ public enum UserManagement {
         /* TODO: Implement */
     }
 
+    public Optional<User> findUserByUsername(String username) {
+        return users.stream()
+                .filter(user -> user.getNickname().equals(username))
+                .findFirst();
+    }
+
     public Optional<User> login(User userToLogin) {
         return this.users
                 .stream()
@@ -62,4 +68,22 @@ public enum UserManagement {
             }
         }
     }
+    public void sendMessageToUser(User sender, User recipient, String message) {
+        if (recipient.getOutStream() != null) {
+            // Create a packet for the individual message
+            Packet messagePacket = Packet.builder()
+                    .user(User.builder().nickname(sender.getNickname()).build())  // Sender's nickname
+                    .message(message)
+                    .command(Command.MESSAGE_INDIVIDUAL)
+                    .build();
+
+            try {
+                recipient.getOutStream().writeObject(messagePacket);  // Send the message to the recipient
+                recipient.getOutStream().flush();
+            } catch (IOException e) {
+                throw new RuntimeException("Error sending individual message to user: " + recipient.getNickname(), e);
+            }
+        }
+    }
+
 }

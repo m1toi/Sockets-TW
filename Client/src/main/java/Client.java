@@ -179,6 +179,7 @@ public class Client {
                     .message(message)
                     .user(currentUser)  // Use the retained User (principal)
                     .command(Command.MESSAGE_INDIVIDUAL)
+                    .recipient(recipient)
                     .build());
         } catch (IOException e) {
             throw new RuntimeException(e);
