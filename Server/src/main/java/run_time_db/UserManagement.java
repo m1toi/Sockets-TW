@@ -23,14 +23,9 @@ public enum UserManagement {
         );
     }
 
-    public void register() {
+    public void register(User userToRegister) {
         /* TODO: Implement */
-    }
-
-    public Optional<User> findUserByUsername(String username) {
-        return users.stream()
-                .filter(user -> user.getNickname().equals(username))
-                .findFirst();
+        this.users.add(userToRegister);
     }
 
     public Optional<User> login(User userToLogin) {
@@ -68,20 +63,67 @@ public enum UserManagement {
             }
         }
     }
-    public void sendMessageToUser(User sender, User recipient, String message) {
-        if (recipient.getOutStream() != null) {
-            // Create a packet for the individual message
-            Packet messagePacket = Packet.builder()
-                    .user(User.builder().nickname(sender.getNickname()).build())  // Sender's nickname
-                    .message(message)
-                    .command(Command.MESSAGE_INDIVIDUAL)
-                    .build();
 
-            try {
-                recipient.getOutStream().writeObject(messagePacket);  // Send the message to the recipient
-                recipient.getOutStream().flush();
-            } catch (IOException e) {
-                throw new RuntimeException("Error sending individual message to user: " + recipient.getNickname(), e);
+    public void individualMessage(Packet packet) {
+        for (User user : users) {
+            if (user.getNickname().equals(packet.getUser().getNickname())) {
+                User cleanUser = User.builder()
+                        .nickname(packet.getUser().getNickname())
+                        .build();
+
+                Packet messagePacket = Packet.builder()
+                        .user(cleanUser)
+                        .message(packet.getMessage())
+                        .command(Command.MESSAGE_INDIVIDUAL)
+                        .build();
+                try {
+                    ObjectOutputStream userOutStream = user.getOutStream();
+                    if (userOutStream != null) {
+                        userOutStream.writeObject(messagePacket);  // Use the user's existing stream
+                        userOutStream.flush();
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException("Error sending message to user: " + user.getNickname(), e);
+                }
+            }
+        }
+    }
+
+    public void roomMessage(Packet packet) {
+        for (User user : users) {
+            /* Do not send the message back to the user who sent it */
+            boolean isNotSameUser = !packet.getUser().getNickname().equals(user.getNickname());
+
+            if (Objects.nonNull(user.getSocket()) && isNotSameUser && packet.getRoom().equals(user.getRoom())) {
+                User cleanUser = User.builder()
+                        .nickname(packet.getUser().getNickname())
+                        .room(packet.getRoom())
+                        .build();
+
+                Packet messagePacket = Packet.builder()
+                        .user(cleanUser)
+                        .message(packet.getMessage())
+                        .room(packet.getRoom())
+                        .command(Command.MESSAGE_ROOM)
+                        .build();
+
+                try {
+                    ObjectOutputStream userOutStream = user.getOutStream();
+                    if (userOutStream != null) {
+                        userOutStream.writeObject(messagePacket);  // Use the user's existing stream
+                        userOutStream.flush();
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException("Error sending message to user: " + user.getNickname(), e);
+                }
+            }
+        }
+    }
+
+    public void enterRoom(Packet packet) {
+        for (User user : users) {
+            if (user.getNickname().equals(packet.getUser().getNickname())) {
+                user.setRoom(packet.getRoom());
             }
         }
     }

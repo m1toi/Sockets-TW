@@ -11,5 +11,5 @@ public class Packet implements Serializable {
     private String message;
     private Command command;
     private User user;
-    private String recipient;
+    private String room = "Room 1";
 }

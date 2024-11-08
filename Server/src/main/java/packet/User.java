@@ -12,6 +12,7 @@ import java.net.Socket;
 public class User implements Serializable {
     private String nickname;
     private String password;
+    private String room;
     private transient Socket socket; // Marked transient because socket is not serializable
     private transient ObjectOutputStream outStream; // Marked transient because streams are not serializable
 }

@@ -39,10 +39,25 @@ public class Client {
                             this.currentUser = packet.getUser(); // Store the authenticated user
                             System.out.println("Logged in as: " + currentUser.getNickname());
                         }
-
-                        if(packet.getCommand().equals(Command.MESSAGE_ALL)){
+                        else if("User registered".equals(packet.getMessage())){
+                            System.out.println("User registered successfully");
+                        }
+                        else if(packet.getCommand().equals(Command.MESSAGE_ALL)){
                             String message = "%s : %s ".formatted(packet.getUser().getNickname(), packet.getMessage());
                             System.out.println(message);
+                        } else if (packet.getCommand().equals(Command.MESSAGE_INDIVIDUAL)){
+                            String message = "%s ".formatted(packet.getMessage());
+                            System.out.println(message);
+                        }
+                        else if (packet.getCommand().equals(Command.MESSAGE_ROOM)){
+                            String message = "%s ".formatted(packet.getMessage());
+                            System.out.println(message);
+                        }
+                        else if (packet.getCommand().equals(Command.ENTER_ROOM)){
+                            System.out.println("Entered room: " + packet.getRoom());
+                        }
+                        else {
+                            System.out.println(packet.getMessage());
                         }
                         this.notify(); // Notify the waiting thread that a server response was received
                     }
@@ -85,6 +100,8 @@ public class Client {
                 switch (option) {
                     case "1", "message all" -> messageAll(scanner);
                     case "2", "message individual" -> messageIndividual(scanner);
+                    case "3", "message room" -> messageRoom(scanner);
+                    case "4", "enter room" -> enterRoom(scanner);
                     case "exit" -> exit();
                     default -> System.out.println("Invalid option. Please try again.");
                 }
@@ -104,12 +121,17 @@ public class Client {
     }
 
     private void showMessagingMenu() {
-        System.out.println("""
-                Messaging Options:
-                1. Message All (Public Chat)
-                2. Message Individual
-                Type 'exit' to quit.
-                Choose: """);
+        System.out.println(
+                "Logged in as: " + currentUser.getNickname() + "\n" +
+                        "Current Room: " + currentUser.getRoom() + "\n" +
+                        """
+                        Messaging Options:
+                        1. Message All (Public Chat)
+                        2. Message Individual
+                        3. Message Room
+                        4. Enter Room
+                        Type 'exit' to quit.
+                        Choose: """);
     }
 
     private void login(Scanner scanner) {
@@ -172,15 +194,51 @@ public class Client {
         String recipient = scanner.nextLine();
         System.out.print("Enter message: ");
         String message = scanner.nextLine();
+        message = currentUser.getNickname() + ": " + message;
 
         try {
             out.writeObject(Packet
                     .builder()
                     .message(message)
-                    .user(currentUser)  // Use the retained User (principal)
+                    .user(User.builder().nickname(recipient).build())
                     .command(Command.MESSAGE_INDIVIDUAL)
-                    .recipient(recipient)
                     .build());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void messageRoom(Scanner scanner) {
+        System.out.print("Enter room name: ");
+        String roomName = scanner.nextLine();
+        System.out.print("Enter message: ");
+        String message = scanner.nextLine();
+        message = currentUser.getNickname() + ": " + message;
+
+        try {
+            out.writeObject(Packet
+                    .builder()
+                    .message(message)
+                    .user(User.builder().nickname(roomName).build())
+                    .room(roomName)
+                    .command(Command.MESSAGE_ROOM)
+                    .build());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void enterRoom(Scanner scanner) {
+        System.out.print("Enter room name: ");
+        String roomName = scanner.nextLine();
+        try {
+            out.writeObject(Packet
+                    .builder()
+                    .user(User.builder().nickname(currentUser.getNickname()).build())
+                    .room(roomName)
+                    .command(Command.ENTER_ROOM)
+                    .build());
+            currentUser.setRoom(roomName);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
